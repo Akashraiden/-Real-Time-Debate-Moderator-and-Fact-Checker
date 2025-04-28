@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
+
 # Set Streamlit page configurations
 st.set_page_config(
     page_title="🎤 Real-Time Debate Moderator & Fact-Checker",
