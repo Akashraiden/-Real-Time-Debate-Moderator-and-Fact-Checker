@@ -56,7 +56,9 @@ jobs:
           ECR_REPOSITORY: debate
           IMAGE_TAG: latest
         run: |
+          echo "🛠️ Building Docker image..."
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          echo "📤 Pushing Docker image to ECR..."
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
@@ -80,22 +82,44 @@ jobs:
 
       - name: Pull latest image
         run: |
-          docker pull ${{ secrets.AWS_ECR_LOGIN_URI }}/debate:latest
+          echo "📥 Pulling image from ECR..."
+          docker pull ${{ secrets.AWS_ECR_LOGIN_URI }}/debate:latest || {
+            echo "❌ Failed to pull image. Check AWS_ECR_LOGIN_URI and repository name."; exit 1;
+          }
 
       - name: Stop and remove existing container if running
         run: |
-          docker ps -q --filter "name=streamlit-app" | grep -q . && docker stop streamlit-app && docker rm -fv streamlit-app || echo "No existing container"
+          echo "🔍 Checking for existing container..."
+          if docker ps -q --filter "name=streamlit-app" | grep -q .; then
+            echo "🛑 Stopping existing container..."
+            docker stop streamlit-app
+            echo "🗑️ Removing existing container..."
+            docker rm -fv streamlit-app
+          else
+            echo "✅ No existing container found."
+          fi
 
       - name: Run Docker Image to serve users
         run: |
+          echo "🚀 Starting new container from image..."
           docker run -d -p 8501:8501 \
             --ipc="host" \
             --name=streamlit-app \
             -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
             -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
             -e AWS_REGION=${{ secrets.AWS_REGION }} \
-            ${{ secrets.AWS_ECR_LOGIN_URI }}/debate:latest
+            ${{ secrets.AWS_ECR_LOGIN_URI }}/debate:latest || {
+              echo "❌ Failed to start container. Check logs or Dockerfile."; exit 1;
+            }
+          echo "✅ Container started successfully."
+
+      - name: Show container logs (if failed)
+        if: failure()
+        run: |
+          echo "📋 Showing logs from failed container (if any)..."
+          docker logs streamlit-app || echo "⚠️ No logs found."
 
       - name: Clean previous images and containers
         run: |
+          echo "🧹 Cleaning up unused images and containers..."
           docker system prune -f
