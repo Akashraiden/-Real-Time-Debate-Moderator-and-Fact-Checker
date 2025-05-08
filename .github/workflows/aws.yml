@@ -56,16 +56,9 @@ jobs:
           ECR_REPOSITORY: debate
           IMAGE_TAG: latest
         run: |
-          echo "🛠️ Building local Docker image debate-moderator:latest..."
-          docker build -t debate-moderator:latest .
-
-          echo "🏷️ Tagging image for ECR..."
-          docker tag debate-moderator:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-          echo "📤 Pushing Docker image to ECR..."
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
   Continuous-Deployment:
     needs: build-and-push-ecr-image
@@ -87,45 +80,21 @@ jobs:
 
       - name: Pull latest image
         run: |
-          echo "📥 Pulling image from ECR..."
-          docker pull ${{ secrets.AWS_ECR_LOGIN_URI }}/debate:latest || {
-            echo "❌ Failed to pull image. Check AWS_ECR_LOGIN_URI and repository name."; exit 1;
-          }
+          docker pull ${{ secrets.AWS_ECR_LOGIN_URI }}/debate:latest
 
-      - name: Stop and remove existing container if running
-        run: |
-          echo "🔍 Checking for existing container..."
-          if docker ps -q --filter "name=streamlit-app" | grep -q .; then
-            echo "🛑 Stopping existing container..."
-            docker stop streamlit-app
-            echo "🗑️ Removing existing container..."
-            docker rm -fv streamlit-app
-          else
-            echo "✅ No existing container found."
-          fi
+      # Uncomment this section if you want to stop & remove previous container
+      # - name: Stop and remove container if running
+      #   run: |
+      #     docker ps -q --filter "name=mltest" | grep -q . && docker stop mltest && docker rm -fv mltest
 
       - name: Run Docker Image to serve users
         run: |
-          echo "🚀 Starting new container from image..."
-          docker run -d -p 8501:8501 \
-            --ipc="host" \
-            --name=streamlit-app \
-            -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
-            -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-            -e AWS_REGION=${{ secrets.AWS_REGION }} \
-            ${{ secrets.AWS_ECR_LOGIN_URI }}/debate:latest \
-            streamlit run app.py || {
-              echo "❌ Failed to start container. Check logs or Dockerfile."; exit 1;
-            }
-          echo "✅ Container started successfully."
-
-      - name: Show container logs (if failed)
-        if: failure()
-        run: |
-          echo "📋 Showing logs from failed container (if any)..."
-          docker logs streamlit-app || echo "⚠️ No logs found."
+          docker run -d -p 8080:8080 --ipc="host" --name=mltest \
+          -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+          -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+          -e AWS_REGION=${{ secrets.AWS_REGION }} \
+          ${{ secrets.AWS_ECR_LOGIN_URI }}/debate:latest
 
       - name: Clean previous images and containers
         run: |
-          echo "🧹 Cleaning up unused images and containers..."
           docker system prune -f
