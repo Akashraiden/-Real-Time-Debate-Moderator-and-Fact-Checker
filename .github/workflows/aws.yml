@@ -56,10 +56,15 @@ jobs:
           ECR_REPOSITORY: debate
           IMAGE_TAG: latest
         run: |
-          echo "🛠️ Building Docker image..."
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          echo "🛠️ Building local Docker image debate-moderator:latest..."
+          docker build -t debate-moderator:latest .
+
+          echo "🏷️ Tagging image for ECR..."
+          docker tag debate-moderator:latest $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
           echo "📤 Pushing Docker image to ECR..."
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
   Continuous-Deployment:
