@@ -1,4 +1,4 @@
-name: workflow
+name: Streamlit App CI/CD
 
 on:
   push:
@@ -20,10 +20,10 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Lint code
-        run: echo "Linting repository"
+        run: echo "Linting the code..."
 
       - name: Run unit tests
-        run: echo "Running unit tests"
+        run: echo "Running unit tests..."
 
   build-and-push-ecr-image:
     name: Continuous Delivery
@@ -49,22 +49,21 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, tag, and push image to Amazon ECR
-        id: build-image
+      - name: Build, tag, and push Docker image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: mltest
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY_NAME }}
           IMAGE_TAG: latest
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
 
-  Continuous-Deployment:
+  deploy:
+    name: Continuous Deployment
     needs: build-and-push-ecr-image
-    runs-on: self
+    runs-on: self-hosted
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v3
 
       - name: Configure AWS credentials
@@ -78,23 +77,22 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Pull latest image
+      - name: Pull latest Docker image
         run: |
-          docker pull ${{ secrets.AWS_ECR_LOGIN_URI }}/mltest:latest
+          docker pull ${{ secrets.AWS_ECR_LOGIN_URI }}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
 
-      # Uncomment this section if you want to stop & remove previous container
-      # - name: Stop and remove container if running
-      #   run: |
-      #     docker ps -q --filter "name=mltest" | grep -q . && docker stop mltest && docker rm -fv mltest
-
-      - name: Run Docker Image to serve users
+      - name: Stop and remove existing container (if any)
         run: |
-          docker run -d -p 8080:8080 --ipc="host" --name=mltest \
-          -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
-          -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-          -e AWS_REGION=${{ secrets.AWS_REGION }} \
-          ${{ secrets.AWS_ECR_LOGIN_URI }}/mltest:latest
+          docker ps -q --filter "name=mltest" | grep -q . && docker stop mltest && docker rm -f mltest || echo "No container to remove"
 
-      - name: Clean previous images and containers
+      - name: Run the Streamlit container
+        run: |
+          docker run -d -p 8501:8501 --name mltest --ipc="host" \
+            -e AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            -e AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            -e AWS_REGION=${{ secrets.AWS_REGION }} \
+            ${{ secrets.AWS_ECR_LOGIN_URI }}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+
+      - name: Clean up old images and containers
         run: |
           docker system prune -f
