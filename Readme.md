@@ -15,6 +15,32 @@ Whether you're analyzing a political debate, educational discussion, or any conv
 - 📝 **Summarization** – Get a concise summary of long conversations or discussions.
 - 🌍 **Multilingual Translation** – Translate debate transcripts into supported languages.
 
+- ## 🧩 Workflow
+
+1. **Upload an audio file** (`.mp3`, `.wav`, `.ogg`)
+2. **Transcribe** the audio using **Whisper**
+3. **Perform AI tasks** with **Gemini 1.5 Pro**  
+   - Debate Moderation  
+   - Fact-Checking  
+   - Sentiment Analysis (multiple languages)  
+   - Text Summarization  
+   - Translation
+4. **View** all AI-generated outputs directly in the Streamlit UI
+
+---
+
+## 🌍 Supported Languages
+
+### Sentiment & Translation
+
+- English  
+- Spanish  
+- French  
+- German  
+- Chinese  
+- Japanese
+
+
 ---
 
 ## 🛠️ Tech Stack
