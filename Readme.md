@@ -62,3 +62,14 @@ Whether you're analyzing a political debate, educational discussion, or any conv
 ```bash
 git clone https://github.com/your-username/real-time-debate-moderator.git
 cd real-time-debate-moderator
+
+
+
+## 📬 Contact
+
+If you have any questions or suggestions, feel free to reach out:
+
+- **Name**: Akash
+- **Email**: akasht2098@gmail.com 
+
+
