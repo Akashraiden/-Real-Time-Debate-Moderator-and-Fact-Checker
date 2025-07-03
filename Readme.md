@@ -1,4 +1,4 @@
-# 🎤 Real-Time Debate Moderator & Fact-Checker Using LLM Model
+# 🎤 Real-Time Debate Moderator & Fact-Checker Using LLM Model with Aws Deployment
 
 This Streamlit application enables users to **transcribe**, **moderate**, **fact-check**, **analyze sentiment**, **summarize**, and **translate** audio content from live or recorded debates. It leverages **OpenAI's Whisper** for audio transcription and **Gemini 1.5 Pro** (Google Generative AI) for intelligent text-based tasks.
 
